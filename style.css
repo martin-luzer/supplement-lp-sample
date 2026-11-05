@@ -216,3 +216,278 @@ a:focus-visible { outline: 3px solid var(--yolk); outline-offset: 3px; }
   .point { grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; }
   .point:nth-child(even) .point-photo { order: 2; }
 }
+
+/* ===== 動き（参考：ビタブリッドのボタンの光・えがおの購入バー。Emil の決まりに合わせる） ===== */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* 申込ボタン：押すと少し沈む（フィードバック 140ms）／数秒おきに光が走る（注目） */
+.cta { position: relative; overflow: hidden; transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out); }
+.cta:active { transform: translateY(3px) scale(0.98); box-shadow: 0 2px 0 #1F4A30; }
+.cta::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%); transform: translateX(-120%) skewX(-18deg); animation: cta-shine 3.6s var(--ease-in-out) infinite; pointer-events: none; }
+@keyframes cta-shine { 0%, 62% { transform: translateX(-120%) skewX(-18deg); } 100% { transform: translateX(320%) skewX(-18deg); } }
+@media (hover: hover) and (pointer: fine) {
+  .cta:hover { transform: translateY(-1px); }
+}
+
+/* 下の購入バー：最初の画面を過ぎたら下から出る（300ms） */
+.buy-bar { transform: translateY(110%); transition: transform 300ms var(--ease-out); }
+.buy-bar.is-shown { transform: translateY(0); }
+
+/* グラフ：画面に入ったら左から伸びる（説明のための動き、900ms・順番に） */
+.bar i { width: 100%; transform: scaleX(0.02); transform-origin: left center; transition: transform 900ms var(--ease-out); }
+.bar-row:nth-child(2) .bar i { transition-delay: 60ms; }
+.bar-row:nth-child(3) .bar i { transition-delay: 120ms; }
+.bar-row:nth-child(4) .bar i { transition-delay: 180ms; }
+.bar-row:nth-child(5) .bar i { transition-delay: 240ms; }
+.bar-row:nth-child(6) .bar i { transition-delay: 300ms; }
+
+/* メダル：開いたときに1回だけポンと出る */
+.medal { animation: medal-in 520ms var(--ease-out) 250ms both; }
+@keyframes medal-in { from { opacity: 0; transform: scale(0.9) rotate(-8deg); } to { opacity: 1; transform: none; } }
+
+/* 動きを減らす設定の人：移動はやめて、出し入れは色・透明度だけにする */
+@media (prefers-reduced-motion: reduce) {
+  .cta::before { animation: none; display: none; }
+  .cta, .cta:active, .cta:hover { transform: none; }
+  .buy-bar { transform: none; opacity: 0; visibility: hidden; transition: opacity 200ms ease, visibility 200ms; }
+  .buy-bar.is-shown { opacity: 1; visibility: visible; }
+  .bar i { transition: none; }
+  .medal { animation: medal-fade 200ms ease both; }
+  @keyframes medal-fade { from { opacity: 0; } to { opacity: 1; } }
+}
+
+/* ======================================================================
+   動き v4（トレンド調査に合わせて追加。値は emil-animate の決まりどおり）
+   - CSSのスクロール連動（animation-timeline: view()）を基本にし、未対応の端末は JS の IntersectionObserver で代わりに出す
+   - 動きを減らす設定の人には、移動と拡大を全部止める
+   ====================================================================== */
+
+/* 1) スクロールで少しずつ出す */
+@keyframes rv-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :is(.sec .kicker, .sec .title, .sec .lead, .worry-list li, .worry-photo, .func, .chart, .ing-tables, .point, .rating, .expert, .but, .perks li, .howto li, .faq details, .order .single, .order .tel) {
+      animation: rv-in var(--ease-out) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+.js-io :is(.sec .kicker, .sec .title, .sec .lead, .worry-list li, .worry-photo, .func, .chart, .ing-tables, .point, .rating, .expert, .but, .perks li, .howto li, .faq details, .order .single, .order .tel) {
+  opacity: 0; transform: translateY(20px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+}
+.js-io :is(.sec .kicker, .sec .title, .sec .lead, .worry-list li, .worry-photo, .func, .chart, .ing-tables, .point, .rating, .expert, .but, .perks li, .howto li, .faq details, .order .single, .order .tel).in { opacity: 1; transform: none; }
+.js-io .worry-list li:nth-child(2), .js-io .perks li:nth-child(2), .js-io .howto li:nth-child(2) { transition-delay: 60ms; }
+.js-io .worry-list li:nth-child(3), .js-io .perks li:nth-child(3), .js-io .howto li:nth-child(3) { transition-delay: 120ms; }
+.js-io .worry-list li:nth-child(4), .js-io .perks li:nth-child(4) { transition-delay: 180ms; }
+.js-io .worry-list li:nth-child(5), .js-io .perks li:nth-child(5) { transition-delay: 240ms; }
+
+/* 2) 見出しのマーカーを左から引く */
+.title em, .answer em { position: relative; z-index: 0; background: none; }
+.title em::after, .answer em::after { content: ""; position: absolute; left: -0.06em; right: -0.06em; bottom: 0.06em; height: 0.38em; background: rgba(242, 183, 5, 0.5); z-index: -1; transform: scaleX(0.02); transform-origin: left center; transition: transform 700ms var(--ease-out) 150ms; }
+.title.in em::after, .answer.in em::after { transform: scaleX(1); }
+.sec-dark .title em::after { display: none; }
+
+/* 3) チェックが順番に入る（スクロール連動。未対応なら最初から入っている） */
+@keyframes tick-in { from { background-size: 0 0; } to { background-size: 16px 16px; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .worry-list li::before { animation: tick-in var(--ease-out) both; animation-timeline: view(); animation-range: entry 40% cover 30%; }
+  }
+}
+
+/* 4) 価格：打ち消し線が引かれてから、初回価格がポンと出る */
+.offer-price s { text-decoration: none; position: relative; }
+.offer-price s::after { content: ""; position: absolute; left: 0; right: 0; top: 52%; height: 1.5px; background: var(--red); transform: scaleX(0.02); transform-origin: left center; transition: transform 400ms var(--ease-out) 150ms; }
+.offer.in .offer-price s::after { transform: scaleX(1); }
+.offer-price .num { display: inline-block; transform: scale(0.92); opacity: 0.4; transition: transform 320ms var(--ease-out) 450ms, opacity 320ms var(--ease-out) 450ms; }
+.offer.in .offer-price .num { transform: none; opacity: 1; }
+
+/* 5) 最初の画面のボトル：開いたときにゆっくり寄る／スクロールで少し奥へ（動画っぽく） */
+.fv-visual { overflow: visible; }
+.fv-visual img { animation: kenburns 1600ms var(--ease-out) both; }
+@keyframes kenburns { from { transform: scale(1.06); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@keyframes fv-drift { to { transform: translateY(-6%) scale(0.96); } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .fv-visual { animation: fv-drift linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
+  }
+}
+
+/* 6) 実績の帯が流れる（一定の速さ） */
+.ticker { background: var(--forest); color: var(--white); overflow: hidden; padding: 10px 0; }
+.ticker-track { display: flex; width: max-content; gap: 0; animation: ticker 28s linear infinite; }
+.ticker-track span { font-size: 13px; font-weight: 700; white-space: nowrap; padding: 0 18px; display: inline-flex; align-items: center; gap: 18px; }
+.ticker-track span::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--yolk); }
+@keyframes ticker { to { transform: translateX(-50%); } }
+
+/* 7) 声：スマホは横にスワイプ */
+.swipe-hint { display: none; text-align: center; font-size: 12px; color: var(--ink-sub); margin-top: 16px; }
+.dots { display: none; justify-content: center; gap: 8px; margin-top: 12px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint-2); transition: background-color 200ms ease, transform 200ms var(--ease-out); }
+.dots i.on { background: var(--green); transform: scale(1.25); }
+@media (max-width: 759px) {
+  .swipe-hint, .dots { display: flex; justify-content: center; }
+  .voices { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin: 12px calc(-1 * var(--pad)) 0; padding: 4px var(--pad) 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .voices::-webkit-scrollbar { display: none; }
+  .voice { flex: 0 0 86%; scroll-snap-align: center; }
+}
+
+/* 8) よくある質問：開くときに滑らかに（対応ブラウザのみ。未対応ならパッと開く） */
+:root { interpolate-size: allow-keywords; }
+.faq details::details-content { block-size: 0; overflow: hidden; transition: block-size 250ms var(--ease-out), content-visibility 250ms allow-discrete; }
+.faq details[open]::details-content { block-size: auto; }
+.faq summary::after { transition: transform 200ms var(--ease-out); }
+
+/* 動きを減らす設定 */
+@media (prefers-reduced-motion: reduce) {
+  .fv-visual img { animation: none; }
+  .ticker-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; row-gap: 4px; }
+  .ticker-track span:nth-child(n+8) { display: none; }
+  .title em::after, .answer em::after, .offer-price s::after { transform: none; transition: none; }
+  .offer-price .num { transform: none; opacity: 1; transition: none; }
+  .faq details::details-content { transition: none; }
+}
+
+/* ======================================================================
+   動き v5「もりもり」：にぎやかさを足す。値は emil-animate の範囲（販促ページなので長め・はずみ少し）
+   ====================================================================== */
+:root { --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* --- 最初の画面：開いたときの順番の演出 --- */
+  .fv-badges .badge { animation: drop-in 520ms var(--ease-back) both; }
+  .fv-badges .badge:nth-child(1) { animation-delay: 80ms; }
+  .fv-badges .badge:nth-child(2) { animation-delay: 160ms; }
+  .fv-badges .badge:nth-child(3) { animation-delay: 240ms; }
+  @keyframes drop-in { from { opacity: 0; transform: translateY(-14px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+  .fv-copy .l { animation: line-up 720ms var(--ease-out) both; clip-path: inset(0 0 0 0); }
+  .fv-copy .l:nth-child(1) { animation-delay: 300ms; }
+  .fv-copy .l:nth-child(2) { animation-delay: 440ms; }
+  @keyframes line-up { from { opacity: 0; transform: translateY(0.6em); clip-path: inset(100% 0 0 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
+  .fv-sub { animation: rv-in 600ms var(--ease-out) 620ms both; }
+
+  .fv-visual img { animation: bottle-in 900ms var(--ease-back) 500ms both, bottle-float 5s ease-in-out 1500ms infinite; }
+  @keyframes bottle-in { from { opacity: 0; transform: translateY(40px) scale(0.94); } to { opacity: 1; transform: none; } }
+  @keyframes bottle-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .medal { animation: medal-spin 800ms var(--ease-back) 1100ms both, medal-glint 4.5s ease-in-out 2.5s infinite; }
+  @keyframes medal-spin { from { opacity: 0; transform: scale(0.6) rotate(-140deg); } to { opacity: 1; transform: none; } }
+  @keyframes medal-glint { 0%, 85%, 100% { box-shadow: 0 6px 16px rgba(184, 144, 47, 0.35); } 92% { box-shadow: 0 6px 28px rgba(242, 183, 5, 0.75); } }
+  .fv-points div { animation: pop-in 520ms var(--ease-back) both; }
+  .fv-points div:nth-child(1) { animation-delay: 1250ms; }
+  .fv-points div:nth-child(2) { animation-delay: 1350ms; }
+  .fv-points div:nth-child(3) { animation-delay: 1450ms; }
+  @keyframes pop-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+
+  /* 背景の光の粒 */
+  .fv-bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .fv-bubbles i { position: absolute; bottom: -20px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FFF3C4, rgba(242, 183, 5, 0.55) 60%, rgba(242, 183, 5, 0) 72%); animation: bubble-up 9s linear infinite; opacity: 0; }
+  .fv-bubbles i:nth-child(1) { left: 6%; animation-delay: 0s; transform: scale(1.4); }
+  .fv-bubbles i:nth-child(2) { left: 18%; animation-delay: 2.2s; }
+  .fv-bubbles i:nth-child(3) { left: 30%; animation-delay: 4.8s; width: 14px; height: 14px; }
+  .fv-bubbles i:nth-child(4) { left: 44%; animation-delay: 1.4s; width: 7px; height: 7px; }
+  .fv-bubbles i:nth-child(5) { left: 57%; animation-delay: 6.1s; }
+  .fv-bubbles i:nth-child(6) { left: 68%; animation-delay: 3.3s; width: 16px; height: 16px; }
+  .fv-bubbles i:nth-child(7) { left: 79%; animation-delay: 7.4s; width: 8px; height: 8px; }
+  .fv-bubbles i:nth-child(8) { left: 88%; animation-delay: 0.9s; }
+  .fv-bubbles i:nth-child(9) { left: 94%; animation-delay: 5.5s; width: 12px; height: 12px; }
+  .fv-bubbles i:nth-child(10) { left: 50%; animation-delay: 8.2s; width: 6px; height: 6px; }
+  @keyframes bubble-up { 0% { opacity: 0; transform: translateY(0) translateX(0); } 10% { opacity: 0.9; } 50% { transform: translateY(-50vh) translateX(10px); } 90% { opacity: 0.6; } 100% { opacity: 0; transform: translateY(-105vh) translateX(-8px); } }
+  .fv > :not(.fv-bubbles) { position: relative; z-index: 1; }
+
+  /* --- 実績の帯：2段目は逆向き --- */
+  .ticker-2 { background: var(--yolk); color: var(--forest); padding: 7px 0; }
+  .ticker-2 .ticker-track { animation: ticker-rev 22s linear infinite; }
+  .ticker-2 .ticker-track span::after { background: var(--forest); }
+  @keyframes ticker-rev { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+
+  /* --- 見出し：1行ずつ下から押し上がる（スクロール連動） --- */
+  @supports (animation-timeline: view()) {
+    .sec .title .l { animation: line-up var(--ease-out) both; animation-timeline: view(); animation-range: entry 10% entry 70%; }
+  }
+
+  /* --- お得な案内 --- */
+  .offer { animation: offer-glow 3.2s ease-in-out infinite; }
+  @keyframes offer-glow { 0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(200, 55, 45, 0); } 82% { box-shadow: 0 0 0 6px rgba(200, 55, 45, 0.18); } }
+  .offer-off { animation: heartbeat 1.6s ease-in-out infinite; transform-origin: left center; }
+  @keyframes heartbeat { 0%, 60%, 100% { transform: scale(1); } 70% { transform: scale(1.12); } 80% { transform: scale(0.98); } 90% { transform: scale(1.08); } }
+  .gift { border: 0; background-image: repeating-linear-gradient(90deg, var(--gold) 0 8px, transparent 8px 14px), repeating-linear-gradient(90deg, var(--gold) 0 8px, transparent 8px 14px), repeating-linear-gradient(0deg, var(--gold) 0 8px, transparent 8px 14px), repeating-linear-gradient(0deg, var(--gold) 0 8px, transparent 8px 14px); background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%; background-position: 0 0, 0 100%, 0 0, 100% 0; background-repeat: no-repeat; animation: ants 1.2s linear infinite; }
+  @keyframes ants { to { background-position: 14px 0, -14px 100%, 0 -14px, 100% 14px; } }
+  .gift-icon { animation: wiggle 2.8s ease-in-out infinite; }
+  @keyframes wiggle { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-10deg); } 90% { transform: rotate(8deg); } 95% { transform: rotate(-4deg); } }
+  .cta { animation: cta-nudge 3.6s var(--ease-out) infinite; }
+  @keyframes cta-nudge { 0%, 74%, 100% { transform: none; } 78% { transform: scale(1.04); } 82% { transform: scale(0.99); } 86% { transform: scale(1.02); } 90% { transform: none; } }
+  .cta:active { animation: none; }
+
+  /* --- 悩み：左から順にすべり込み、チェックがポンと入る --- */
+  .worry-list li { opacity: 0; transform: translateX(-24px); transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out); }
+  .worry-list li.pop { opacity: 1; transform: none; }
+  .worry-list li::before { transform: scale(0.4); transition: transform 380ms var(--ease-back) 250ms; }
+  .worry-list li.pop::before { transform: scale(1); }
+  .worry-list li:nth-child(2) { transition-delay: 90ms; }
+  .worry-list li:nth-child(3) { transition-delay: 180ms; }
+  .worry-list li:nth-child(4) { transition-delay: 270ms; }
+  .worry-list li:nth-child(5) { transition-delay: 360ms; }
+  .arrow-down { animation: arrow-bob 1.4s ease-in-out infinite; }
+  @keyframes arrow-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+  /* --- 写真：幕が開くように現れて、少し寄る --- */
+  @supports (animation-timeline: view()) {
+    .worry-photo, .point-photo, .expert-head img { animation: wipe-in var(--ease-out) both; animation-timeline: view(); animation-range: entry 0% entry 80%; }
+    .point-photo img, .worry-photo img { animation: photo-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  }
+  @keyframes wipe-in { from { clip-path: inset(0 100% 0 0 round 16px); } to { clip-path: inset(0 0 0 0 round 16px); } }
+  @keyframes photo-drift { from { transform: scale(1.12) translateY(-4%); } to { transform: scale(1.12) translateY(4%); } }
+
+  /* --- 栄養機能食品の丸：回りながら出る --- */
+  .func .func-name { transform: rotate(-180deg) scale(0.6); opacity: 0; transition: transform 700ms var(--ease-back), opacity 400ms var(--ease-out); }
+  .func.pop .func-name { transform: none; opacity: 1; }
+  .func p { opacity: 0; transform: translateX(16px); transition: opacity 500ms var(--ease-out) 200ms, transform 500ms var(--ease-out) 200ms; }
+  .func.pop p { opacity: 1; transform: none; }
+
+  /* --- こだわりの番号札がすべり込む --- */
+  .point .point-no { transform: translateX(-120%); transition: transform 500ms var(--ease-back) 300ms; }
+  .point.pop .point-no { transform: none; }
+
+  /* --- 声：星が1つずつ光る --- */
+  .voice .stars { background: linear-gradient(90deg, var(--yolk) 0 50%, #D8D2BD 50% 100%) 100% 0 / 200% 100% no-repeat; -webkit-background-clip: text; background-clip: text; color: transparent; transition: background-position 900ms var(--ease-out) 200ms; }
+  .voice.pop .stars { background-position: 0 0; }
+  .rating .num { display: inline-block; }
+  .rating.pop .num { animation: pop-in 520ms var(--ease-back) both; }
+
+  /* --- 安心してください！ --- */
+  .but .but-a { opacity: 0; transform: scale(0.7); transition: transform 600ms var(--ease-back) 200ms, opacity 300ms var(--ease-out) 200ms; }
+  .but.pop .but-a { opacity: 1; transform: none; }
+  .but-grid div { opacity: 0; transform: translateY(16px); transition: opacity 450ms var(--ease-out), transform 450ms var(--ease-back); }
+  .but.pop .but-grid div { opacity: 1; transform: none; }
+  .but.pop .but-grid div:nth-child(1) { transition-delay: 450ms; }
+  .but.pop .but-grid div:nth-child(2) { transition-delay: 550ms; }
+  .but.pop .but-grid div:nth-child(3) { transition-delay: 650ms; }
+
+  /* --- 特典の丸：順番に回りながら出る --- */
+  .perks li::before { transform: rotate(-200deg) scale(0.5); transition: transform 700ms var(--ease-back); }
+  .perks li.pop::before { transform: none; }
+
+  /* --- 飲み方：順番にポン --- */
+  .howto li { opacity: 0; transform: translateY(18px) scale(0.96); transition: opacity 450ms var(--ease-out), transform 450ms var(--ease-back); }
+  .howto li.pop { opacity: 1; transform: none; }
+  .howto li:nth-child(2) { transition-delay: 120ms; }
+  .howto li:nth-child(3) { transition-delay: 240ms; }
+
+  /* --- 下の購入バー：価格がときどき脈打つ --- */
+  .buy-bar p b { display: inline-block; animation: heartbeat 2.4s ease-in-out infinite; transform-origin: left center; }
+}
+
+/* 古い端末（スクロール連動なし）でも、見出しの行は普通に見える */
+@supports not (animation-timeline: view()) {
+  .sec .title .l { animation: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* 悩みと飲み方は .pop の演出に任せる（スクロール連動の浮き上がりと二重にしない） */
+  .worry-list li, .howto li { animation: none; }
+}
